@@ -5,6 +5,7 @@
     <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
     <script src="jquery-2.1.1.min.js"></script>
+    <script src="http://code.jquery.com/jquery.min.js"></script>
     <style>
         #map{ margin-top: 170px; width: 1170px; height: 500px; }
     </style>
@@ -13,13 +14,19 @@
 
 <div id="map"></div>
 
-<script async defer
-    src = api.geonames.org/countrySubdivision?>
-</script>
+
+<form action="/action_page.php">
+    Land: <input type="text" name="Land" value="">
+    Valid-From: <input type="text" name="valid from" value="">
+    Valid-Until: <input type="text" name="valid until" value="">
+</form>
+</form>
+
 
 <script>
-    var lang = 47.03;
-    var long = 10.2;
+    var lat = 47.03; // default value
+    var long = 10.2; // default value
+
     // initialize the map
     var map = L.map('map').setView([0, 0], 3);
 
@@ -32,29 +39,63 @@
     }).addTo(map);
 
     map.on('click', function(e) {
-        lang = e.latlng.lat;
+
+        lat = e.latlng.lat;
         long = e.latlng.lng;
         alert("Lat, Lon : " + e.latlng.lat + ", " + e.latlng.lng)
+        var geoAPIURL = "http://api.geonames.org/countryCodeJSON?lat=" + lat + "&lng=" + long + "&username=rnkhl";
+        console.log(geoAPIURL);
+        var callback
+        httpGetAsync(geoAPIURL, callback);
+        var jsonObj = new JSONObject("countryCodeJSON");
+        var value = jsonObj.getString("countryName");
+        console.log(value);
+        loadJSON
+
     });
 
-    // $(document).ready( function() {
-    //     if (navigator.geolocation) {
-    //         navigator.geolocation.getCurrentPosition(function(position) {
-    //             $.getJSON('http://ws.geonames.org/countryCode', {
-    //                 lat: position.coords.latitude,
-    //                 lng: position.coords.longitude,
-    //                 type: 'JSON'
-    //             }, function(result) {
-    //                 alert('Country: ' + result.countryName + '\n' + 'Code: ' + result.countryCode);
-    //             });
-    //         });
-    //     }
-    // });
+    function httpGetAsync(theUrl, callback)
+    {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function() {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                callback(xmlHttp.responseText);
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send(null);
+        return xmlHttp;
+    }
+    
 
 
 
 </script>
 
+<select id="select">
+    <option value="default">Choose a map feature</option>
+</select>
+
+<script >
+    var select = document.getElementById("select");
+
+    var mapFeatures = ["motorway","trunk","primary","secondary","tertiary","unclassified","residential",
+        "motorway_link","trunk_link","primary_link","secondary_link","tertiary_link"
+        ]
+
+    for(var i = 0; i < mapFeatures.length; i++){
+        var option = document.createElement("OPTION");
+        txt = document.createTextNode(mapFeatures[i]);
+        option.appendChild(txt);
+        option.setAttribute("value",mapFeatures[i]);
+        select.insertBefore(option,select.lastChild);
+    }
+
+    function getSelectedCountry() {
+        var selectedCountry = document.getElementById("select");
+    }
+
+    getSelectedCountry();
+    </script>
 
 
 
