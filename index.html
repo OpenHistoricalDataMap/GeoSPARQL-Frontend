@@ -3,11 +3,14 @@
     <title>A Leaflet map!</title>
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
     <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-    <script src="jquery-2.1.1.min.js"></script>
-    <script src="http://code.jquery.com/jquery.min.js"></script>
+    <script src="proj4leaflet.js"></script>
+    <script src="proj4.js"></script>
     <style>
-        #map{ margin-top: 170px; width: 1170px; height: 500px; }
+        #map {
+            margin-top: 170px;
+            width: 1170px;
+            height: 500px;
+        }
     </style>
 </head>
 <body>
@@ -19,6 +22,10 @@
     Land: <input type="text" name="Land" value="" id="landID">
     Valid-From: <input type="text" name="valid from" value="">
     Valid-Until: <input type="text" name="valid until" value="">
+    PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="">
+    PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="">
+    PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="">
+    PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="">
 </form>
 </form>
 
@@ -31,68 +38,90 @@
     var map = L.map('map').setView([0, 0], 3);
 
 
-
     // load a tile layer
     L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-        attribution : '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-        noWrap      : true
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+        noWrap: true
     }).addTo(map);
 
-    map.on('click', function(e) {
+    map.on('click', function (e) {
 
         lat = e.latlng.lat;
         long = e.latlng.lng;
         alert("Lat, Lon : " + e.latlng.lat + ", " + e.latlng.lng)
-        var geoAPIURL = "http://api.geonames.org/countryCodeJSON?lat=" + lat + "&lng=" + long + "&username=rnkhl";
-        console.log(geoAPIURL);
 
-        var HttpClient = function () {
-            this.get = function (url, callback) {
-                var httpRequest = new XMLHttpRequest();
-                httpRequest.onreadystatechange = function () {
-                    if(httpRequest.readyState == 4 && httpRequest.status == 200){
-                        callback(httpRequest.responseText);
-                    }
-                }
-
-                httpRequest.open("GET", url, true);
-                httpRequest.send(null);
-            }
-        };
-
-        var client = new HttpClient();
-        client.get(geoAPIURL, function (response) {
-            var response = JSON.parse(response);
-            console.log(response);
-            document.getElementById("landID").value = response.countryName;
-            console.log(document.getElementById("landID"));
-        });
 
     });
 
+    var rectangle;
+
+    function transformLatAndLong() {
+        var lat1 = document.getElementById("bound1.lat").value;
+        var long1 = document.getElementById("bound1.long").value;
+        var lat2 = document.getElementById("bound2.lat").value;
+        var long2 = document.getElementById("bound2.long").value;
+        var bngcoords = proj4l(bngprojection, [lat1, long1]);
+        var bngcoords2 = proj4(bngprojection, [lat2, long2]);
+        console.log(bngcoords);
+        console.log(bngcoords2);
+    }
+
+    function drawRectangle() {
+        var lat1 = document.getElementById("bound1.lat").value;
+        var long1 = document.getElementById("bound1.long").value;
+        var lat2 = document.getElementById("bound2.lat").value;
+        var long2 = document.getElementById("bound2.long").value;
+        console.log(lat1 + " " + long1 + " " );
+        //L.rect(lat1, long1, lat2, long2).addTo;
+        var bounds = [[lat1, long1], [lat2, long2]];
+        if(rectangle)
+            window.map.removeLayer(window.rectangle);
+        rectangle = L.rectangle(bounds).addTo(map);
+        transformLatAndLong();
+    }
+
+    document.addEventListener('keydown', (event) => {
+        const keyName = event.key;
+
+        if (keyName === 'c') {
+            callBound1();
+        } else if (keyName === 'v') {
+            callBound2();
+        } else if (keyName === "d") {
+            drawRectangle();
+        }
+    }, false);
+
+    callBound1 = function () {
+        document.getElementById("bound1.lat").value = lat;
+        document.getElementById("bound1.long").value = long;
+
+    };
 
 
-
-
+    callBound2 = function () {
+        document.getElementById("bound2.lat").value = lat;
+        document.getElementById("bound2.long").value = long;
+    };
 </script>
 
 <select id="select">
     <option value="default">Choose a map feature</option>
 </select>
 
-<script >
+<script>
     var select = document.getElementById("select");
 
-    var mapFeatures = ["motorway","trunk","primary","secondary","tertiary","unclassified","residential",
-        "motorway_link","trunk_link","primary_link","secondary_link","tertiary_link"
-        ]
+    var mapFeatures = ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential",
+        "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link"
+    ]
 
-    for(var i = 0; i < mapFeatures.length; i++){
+    for (var i = 0; i < mapFeatures.length; i++) {
         var option = document.createElement("OPTION");
         txt = document.createTextNode(mapFeatures[i]);
         option.appendChild(txt);
-        option.setAttribute("value",mapFeatures[i]);
-        select.insertBefore(option,select.lastChild);
+        option.setAttribute("value", mapFeatures[i]);
+        select.insertBefore(option, select.lastChild);
     }
 
     function getSelectedCountry() {
@@ -100,8 +129,7 @@
     }
 
     getSelectedCountry();
-    </script>
-
+</script>
 
 
 </body>
