@@ -2,9 +2,12 @@
 <head>
     <title>A Leaflet map!</title>
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
-    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
-    <script src="proj4leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
     <script src="proj4.js"></script>
+    <script src="proj4leaflet.js"></script>
+    <link href="the-datepicker.css" rel="stylesheet" />
+    <script src="the-datepicker.js"></script>
+
     <style>
         #map {
             margin-top: 170px;
@@ -16,19 +19,18 @@
 <body>
 
 <div id="map"></div>
+<div>
+    Valid-From: <input type="text" id="validfrom" name="valid from" value="" required>
+    Valid-Until: <input type="text" id="validuntil" name="valid until" value=""required>
+    PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="" required>
+    PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="" required>
+    PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="" required>
+    PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="" required>
 
+    QUERY: <div id="query"></div>
 
-<form action="/action_page.php">
-    Land: <input type="text" name="Land" value="" id="landID">
-    Valid-From: <input type="text" name="valid from" value="">
-    Valid-Until: <input type="text" name="valid until" value="">
-    PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="">
-    PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="">
-    PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="">
-    PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="">
-</form>
-</form>
-
+    <button type="button" id="submitbtn" onclick="parseQuery()">SUBMIT for query</button>
+</div>
 
 <script>
     var lat = 47.03; // default value
@@ -54,6 +56,39 @@
     });
 
     var rectangle;
+
+    function parseQuery() {
+        const lat1 = document.getElementById("bound1.lat").value;
+        const long1 = document.getElementById("bound1.long").value;
+        const lat2 = document.getElementById("bound2.lat").value;
+        const long2 = document.getElementById("bound2.long").value;
+        const validfrom = document.getElementById('validfrom').value;
+        const validuntil = document.getElementById('validuntil').value;
+        var query = "PREFIX ohdm: http://www.ohdm.net/ohdm/schema/1.0\n" +
+            "PREFIX strdf: http://strdf.di.uoa.gr/ontology#\n" +
+            "PREFIX xsd: http://www.w3.org/2001/XMLSchema#\n" +
+            "select ?o ?geom ?c ?since ?until\n" +
+            "where \n" +
+            "{\n" +
+            "?s ohdm:name ?o ;\n" +
+            "strdf:hasGeometry ?geom ;\n" +
+            "ohdm:validsince ?since ;\n" +
+            "ohdm:validuntil ?until ;\n" +
+            "ohdm:classid ?c .\n" +
+            "filter(?c = \"42\"^^xsd:integer)\n" +
+            "filter(strdf:within(?geom,\n" +
+            "\"POLYGON((" + long1 + " " + lat1 + ", "
+                          + long1 + " " + lat2 + ", "
+                          + long2 + " " + lat2 + ", "
+                          + long2 + " " + lat1 + ", "
+                          + long1 + " " + lat1 + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT)\n"
+            + ")\n"
+            + "filter(?since > \"" + validfrom + "\"^^xsd:date)\n"
+            + "filter(?until < \"" + validuntil + "\"^^xsd:date)\n"
+            + "}\n"
+
+        document.getElementById("query").innerText = query;
+    }
 
     function transformLatAndLong() {
         var lat1 = document.getElementById("bound1.lat").value;
@@ -95,7 +130,6 @@
     callBound1 = function () {
         document.getElementById("bound1.lat").value = lat;
         document.getElementById("bound1.long").value = long;
-
     };
 
 
@@ -110,6 +144,15 @@
 </select>
 
 <script>
+    const input = document.getElementById('validfrom');
+    const datepicker = new TheDatepicker.Datepicker(input);
+    datepicker.render();
+    const input2 = document.getElementById('validuntil');
+    const datepicker2 = new TheDatepicker.Datepicker(input2);
+    datepicker2.render();
+    datepicker.options.setInputFormat("Y-m-d");
+    datepicker2.options.setInputFormat("Y-m-d");
+
     var select = document.getElementById("select");
 
     var mapFeatures = ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential",
