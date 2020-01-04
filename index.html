@@ -1,36 +1,90 @@
 <html>
 <head>
+    <meta charset="utf-8"/>
     <title>A Leaflet map!</title>
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
     <script src="proj4.js"></script>
     <script src="proj4leaflet.js"></script>
-    <link href="the-datepicker.css" rel="stylesheet" />
+    <link href="the-datepicker.css" rel="stylesheet"/>
     <script src="the-datepicker.js"></script>
 
     <style>
         #map {
-            margin-top: 170px;
-            width: 1170px;
-            height: 500px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            width: 50%;
+            height: 50%;
+            align-self: center;
+        }
+
+        .center {
+            margin: auto;
+            width: 50%;
+            padding: 10px;
+        }
+
+        .body {
+            margin: auto;
+            width: 98%;
+            height: 95%;
+            padding: 0px;
         }
     </style>
 </head>
 <body>
+<div class="body">
+    <div>
+        <p>Benutzung:
+            Auf Karte klicken, um neuen Punkt auszuwählen.
+            Anschließend c drücken, um obere linke Ecke des Rechtecks für Suche zu definieren.
+            Danach nochmal klicken, neuen Punkt aussuchen.
+            Anschließend v drücken, um untere rechte Ecke des Rechtecks für Suche zu definieren.
+            Optional:
+            d drücken, um das Rechteck zu zeichnen (Visuell auf Karte anzuzeigen)</p>
+        <p>
+            Zuletzt die anderen Felder manuell wie gewünscht ausfüllen. Das Datum (2x) wird durch interaktive Auswahl
+            per JS ausgewählt. Dann gibt man noch den gewünschten OHDM Subklassennamen ein (Siehe Map Features von OSM)
+            und
+            drückt auf "Submit for query". Nun sollte man eine generierte GEOSparql-Anfrage erhalten.
+        </p>
+    </div>
+    <div id="map" class="center"></div>
+    <div class="center">
+        <table>
+            <tr>
+                <td rowspan="12">
+                    Valid-From: <input type="text" id="validfrom" name="valid from" value="" required>
+                </td>
+                <td>
+                    test
+                </td>
+            </tr>
+            <table>
+                <tr>
+                    <td rowspan="12">
+                        Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required>
+                        PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="" required>
+                        PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="" required>
+                        PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="" required>
+                        PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="" required>
+                        Subclassname: <input type="text" name="subclassname" id="subclassname" value="" required>
 
-<div id="map"></div>
-<div>
-    Valid-From: <input type="text" id="validfrom" name="valid from" value="" required>
-    Valid-Until: <input type="text" id="validuntil" name="valid until" value=""required>
-    PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="" required>
-    PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="" required>
-    PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="" required>
-    PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="" required>
+                        QUERY:
+                        <div id="query"></div>
+                        <div class="center">
+                            <button type="button" id="submitbtn" onclick="parseQuery()">Submit for query</button>
+                        </div>
+                    </td>
+                    <td>
+                        test
+                    </td>
+                </tr>
+        </table>
 
-    QUERY: <div id="query"></div>
-
-    <button type="button" id="submitbtn" onclick="parseQuery()">SUBMIT for query</button>
+    </div>
 </div>
+
 
 <script>
     var lat = 47.03; // default value
@@ -55,6 +109,18 @@
 
     });
 
+    let inputs = document.querySelectorAll('[type="text"]'),
+        button = document.querySelector('#submitbtn');
+    button.disabled = true;
+
+    for (i = 0; i < inputs.length; i++) {
+        inputs[i].addEventListener('input', () => {
+            let values = []
+            inputs.forEach(v => values.push(v.value))
+            button.disabled = values.includes('')
+        })
+    }
+
     var rectangle;
 
     function parseQuery() {
@@ -64,6 +130,7 @@
         const long2 = document.getElementById("bound2.long").value;
         const validfrom = document.getElementById('validfrom').value;
         const validuntil = document.getElementById('validuntil').value;
+        const subclassname = document.getElementById('subclassname').value;
         var query = "PREFIX ohdm: http://www.ohdm.net/ohdm/schema/1.0\n" +
             "PREFIX strdf: http://strdf.di.uoa.gr/ontology#\n" +
             "PREFIX xsd: http://www.w3.org/2001/XMLSchema#\n" +
@@ -74,14 +141,15 @@
             "strdf:hasGeometry ?geom ;\n" +
             "ohdm:validsince ?since ;\n" +
             "ohdm:validuntil ?until ;\n" +
-            "ohdm:classid ?c .\n" +
-            "filter(?c = \"42\"^^xsd:integer)\n" +
+            "ohdm:classid ?c ;\n" +
+            "ohdm:subclassname ?subclassname .\n" +
+            "filter(?subclassname = \"" + subclassname + "\"^^xsd:string)\n" +
             "filter(strdf:within(?geom,\n" +
             "\"POLYGON((" + long1 + " " + lat1 + ", "
-                          + long1 + " " + lat2 + ", "
-                          + long2 + " " + lat2 + ", "
-                          + long2 + " " + lat1 + ", "
-                          + long1 + " " + lat1 + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT)\n"
+            + long1 + " " + lat2 + ", "
+            + long2 + " " + lat2 + ", "
+            + long2 + " " + lat1 + ", "
+            + long1 + " " + lat1 + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT)\n"
             + ")\n"
             + "filter(?since > \"" + validfrom + "\"^^xsd:date)\n"
             + "filter(?until < \"" + validuntil + "\"^^xsd:date)\n"
@@ -106,10 +174,10 @@
         var long1 = document.getElementById("bound1.long").value;
         var lat2 = document.getElementById("bound2.lat").value;
         var long2 = document.getElementById("bound2.long").value;
-        console.log(lat1 + " " + long1 + " " );
+        console.log(lat1 + " " + long1 + " ");
         //L.rect(lat1, long1, lat2, long2).addTo;
         var bounds = [[lat1, long1], [lat2, long2]];
-        if(rectangle)
+        if (rectangle)
             window.map.removeLayer(window.rectangle);
         rectangle = L.rectangle(bounds).addTo(map);
         transformLatAndLong();
