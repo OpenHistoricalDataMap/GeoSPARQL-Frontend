@@ -54,32 +54,23 @@
         <table>
             <tr>
                 <td rowspan="12">
-                    Valid-From: <input type="text" id="validfrom" name="valid from" value="" required>
+                    <p>Valid-From: <input type="text" id="validfrom" name="valid from" value="" required></p>
+                    <p>Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required></p>
+                    <p>PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="" required></p>
+                    <p>PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="" required></p>
+                    <p>PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="" required></p>
+                    <p>PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="" required></p>
+                    <p>Subclassname: <input type="text" name="subclassname" id="subclassname" value="" required></p>
+                    <p>QUERY:
+
+                    <div class="center">
+                        <button type="button" id="submitbtn" onclick="parseQuery()">Submit for query</button>
+                    </div></p>
                 </td>
                 <td>
-                    test
+                    <div id="query"></div>
                 </td>
             </tr>
-            <table>
-                <tr>
-                    <td rowspan="12">
-                        Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required>
-                        PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="" required>
-                        PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="" required>
-                        PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="" required>
-                        PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="" required>
-                        Subclassname: <input type="text" name="subclassname" id="subclassname" value="" required>
-
-                        QUERY:
-                        <div id="query"></div>
-                        <div class="center">
-                            <button type="button" id="submitbtn" onclick="parseQuery()">Submit for query</button>
-                        </div>
-                    </td>
-                    <td>
-                        test
-                    </td>
-                </tr>
         </table>
 
     </div>
