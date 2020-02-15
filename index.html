@@ -56,10 +56,6 @@
                 <td rowspan="12">
                     <p>Valid-From: <input type="text" id="validfrom" name="valid from" value="" required></p>
                     <p>Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required></p>
-                    <p>PolyBound1.lat: <input type="text" name="bound1" id="bound1.lat" value="" required></p>
-                    <p>PolyBound1.long: <input type="text" name="bound1" id="bound1.long" value="" required></p>
-                    <p>PolyBound2.lat: <input type="text" name="bound2" id="bound2.lat" value="" required></p>
-                    <p>PolyBound2.long: <input type="text" name="bound2" id="bound2.long" value="" required></p>
                     <p>Subclassname: <input type="text" name="subclassname" id="subclassname" value="" required></p>
                     <p>QUERY:
 
@@ -80,6 +76,8 @@
 <script>
     var lat = 47.03; // default value
     var long = 10.2; // default value
+    var listOfCords = [];
+    var polygonOnMap;
 
     // initialize the map
     var map = L.map('map').setView([0, 0], 3);
@@ -95,9 +93,17 @@
 
         lat = e.latlng.lat;
         long = e.latlng.lng;
-        alert("Lat, Lon : " + e.latlng.lat + ", " + e.latlng.lng)
 
+        const tupleOfCords = [lat, long];
+        listOfCords.push(tupleOfCords);
+        console.log(tupleOfCords);
 
+        if(listOfCords.length >= 3){
+            var polygon = L.polygon(listOfCords, {color: 'red'});
+            if(polygonOnMap)
+                window.map.removeLayer(window.polygonOnMap);
+            polygonOnMap = polygon.addTo(map);
+        }
     });
 
     let inputs = document.querySelectorAll('[type="text"]'),
@@ -122,6 +128,13 @@
         const validfrom = document.getElementById('validfrom').value;
         const validuntil = document.getElementById('validuntil').value;
         const subclassname = document.getElementById('subclassname').value;
+        var stringOfCords = "";
+        for(i = 0; i < listOfCords.length; i++){
+            const element = listOfCords[i];
+            stringOfCords += element[0] + " " + element[1] + ", ";
+        }
+        stringOfCords += listOfCords[0][0] + " " + listOfCords[0][1];
+
         var query = "PREFIX ohdm: http://www.ohdm.net/ohdm/schema/1.0\n" +
             "PREFIX strdf: http://strdf.di.uoa.gr/ontology#\n" +
             "PREFIX xsd: http://www.w3.org/2001/XMLSchema#\n" +
@@ -136,11 +149,7 @@
             "ohdm:subclassname ?subclassname .\n" +
             "filter(?subclassname = \"" + subclassname + "\"^^xsd:string)\n" +
             "filter(strdf:within(?geom,\n" +
-            "\"POLYGON((" + long1 + " " + lat1 + ", "
-            + long1 + " " + lat2 + ", "
-            + long2 + " " + lat2 + ", "
-            + long2 + " " + lat1 + ", "
-            + long1 + " " + lat1 + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT)\n"
+            "\"POLYGON((" + stringOfCords + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT)\n"
             + ")\n"
             + "filter(?since > \"" + validfrom + "\"^^xsd:date)\n"
             + "filter(?until < \"" + validuntil + "\"^^xsd:date)\n"
