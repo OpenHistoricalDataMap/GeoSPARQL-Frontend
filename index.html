@@ -2,11 +2,13 @@
 <head>
     <meta charset="utf-8"/>
     <title>A Leaflet map!</title>
-    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
-    <script src="proj4.js"></script>
-    <script src="proj4leaflet.js"></script>
     <link href="the-datepicker.css" rel="stylesheet"/>
+    <!--script type="text/javascript" src="js/leaflet.js"></script-->
+    <script type="text/javascript" src="https://unpkg.com/leaflet@1.1.0/dist/leaflet-src.js"></script>
+    <!--link rel="stylesheet" type="text/css" href="css/leaflet.css"-->
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css">
+
     <script src="the-datepicker.js"></script>
 
     <style>
@@ -48,6 +50,7 @@
             und
             drückt auf "Submit for query". Nun sollte man eine generierte GEOSparql-Anfrage erhalten.
         </p>
+        <button onclick="deletePointsFromMap()">Delete Polygon</button>
     </div>
     <div id="map" class="center"></div>
     <div class="center">
@@ -56,7 +59,16 @@
                 <td rowspan="12">
                     <p>Valid-From: <input type="text" id="validfrom" name="valid from" value="" required></p>
                     <p>Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required></p>
-                    <p>Subclassname: <input type="text" name="subclassname" id="subclassname" value="" required></p>
+                    <select id="classid" required>
+                        <option value="1">Aerialway</option>
+                        <option value="2">Aeroway</option>
+                        <option value="3">Amenity</option>
+                        <option value="4">Barrier</option>
+                        <option value="5">Boundary</option>
+                        <option value="6">Building</option>
+                        <option value="7">Craft</option>
+                        <option value="8">Emergency</option>
+                    </select>
                     <p>QUERY:
 
                     <div class="center">
@@ -65,7 +77,18 @@
                     </p>
                 </td>
                 <td>
+                    <p><b>URI ENCODED QUERY</b></p>
                     <div id="query"></div>
+                </td>
+                <td>
+                    <p><b>URI DECODED QUERY</b></p>
+                    <div id="queryDecoded"></div>
+                </td>
+                <td>
+                    <p><b>Default Query for visualizing some data:</b></p>
+                    <div id="defaultQuery">
+                    </div>
+                    <button onclick="iteratePointsFromQuery()">Submit query and visualize Data</button>
                 </td>
             </tr>
         </table>
@@ -97,14 +120,15 @@
         "   ?link geo:long ?lon\n" +
         "}";
     const queryURL = "http://www.lotico.com:3030/lotico/sparql?query=PREFIX+gn%3A+%3Chttp%3A%2F%2Fwww.geonames.org%2Fontology%23%3E%0D%0APREFIX+xsd%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E+%0D%0APREFIX+spatial%3A+%3Chttp%3A%2F%2Fjena.apache.org%2Fspatial%23%3E+%0D%0APREFIX+geo%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2003%2F01%2Fgeo%2Fwgs84_pos%23%3E%0D%0A+%0D%0A%0D%0ASELECT+%3Flink+%3Fname+%3Flat+%3Flon%0D%0AWHERE++%7B++%0D%0A+++%3Flink+spatial%3Anearby%2851.139725+-0.895386+50+%27km%27%29+.++%0D%0A+++%3Flink+gn%3Aname+%3Fname+.++%0D%0A+++%3Flink+gn%3AfeatureCode+gn%3AS.AIRP+.%0D%0A+++%3Flink+geo%3Alat+%3Flat+.%0D%0A+++%3Flink+geo%3Along+%3Flon%0D%0A%7D&output=json";
+    document.getElementById("defaultQuery").innerText = "\n" + queryURL + "\n\n This query should find nearby airpots of London. Example query from www.geosparql.org";
     var queryResult;
     //get result from query
     const Http = new XMLHttpRequest();
     Http.open("GET", queryURL);
     Http.send();
 
-    Http.onreadystatechange=function(){
-        if(this.readyState==XMLHttpRequest.DONE && this.status==200){
+    Http.onreadystatechange = function () {
+        if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
             queryResult = JSON.parse(Http.responseText);
             console.log(queryResult);
         }
@@ -167,7 +191,6 @@
 
         const tupleOfCords = [lat, long];
         listOfCords.push(tupleOfCords);
-        console.log(tupleOfCords);
 
         if (listOfCords.length >= 3) {
             var polygon = L.polygon(listOfCords, {color: 'red'});
@@ -177,24 +200,18 @@
         }
     });
 
-    let inputs = document.querySelectorAll('[type="text"]'),
-        button = document.querySelector('#submitbtn');
-    button.disabled = true;
-
-    for (i = 0; i < inputs.length; i++) {
-        inputs[i].addEventListener('input', () => {
-            let values = []
-            inputs.forEach(v => values.push(v.value))
-            button.disabled = values.includes('')
-        })
-    }
-
-    var rectangle;
-
     function parseQuery() {
+        if (listOfCords.length < 3) {
+            alert("Polygon must have at least 3 points!");
+            return;
+        }
         const validfrom = document.getElementById('validfrom').value;
         const validuntil = document.getElementById('validuntil').value;
-        const subclassname = document.getElementById('subclassname').value;
+        if(!validfrom || !validuntil){
+            alert("Please enter the validfrom and validuntil dates!");
+            return;
+        }
+        const classid = document.getElementById('classid').value;
         var stringOfCords = "";
         for (i = 0; i < listOfCords.length; i++) {
             const element = listOfCords[i];
@@ -213,8 +230,7 @@
             "ohdm:validsince ?since ;\n" +
             "ohdm:validuntil ?until ;\n" +
             "ohdm:classid ?c ;\n" +
-            "ohdm:subclassname ?subclassname .\n" +
-            "filter(?subclassname = \"" + subclassname + "\"^^xsd:string)\n" +
+            "filter(?c = \"" + classid + "\"^^xsd:string)\n" +
             "filter(strdf:within(?geom,\n" +
             "\"POLYGON((" + stringOfCords + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT)\n"
             + ")\n"
@@ -222,48 +238,28 @@
             + "filter(?until < \"" + validuntil + "\"^^xsd:date)\n"
             + "}\n";
 
+        document.getElementById("queryDecoded").innerText = query;
         query = encodeURIComponent(query);
-
         document.getElementById("query").innerText = query;
     }
 
-    function transformLatAndLong() {
-        var lat1 = document.getElementById("bound1.lat").value;
-        var long1 = document.getElementById("bound1.long").value;
-        var lat2 = document.getElementById("bound2.lat").value;
-        var long2 = document.getElementById("bound2.long").value;
-        var bngcoords = proj4l(bngprojection, [lat1, long1]);
-        var bngcoords2 = proj4(bngprojection, [lat2, long2]);
-        console.log(bngcoords);
-        console.log(bngcoords2);
-    }
-
-    function drawRectangle() {
-        var lat1 = document.getElementById("bound1.lat").value;
-        var long1 = document.getElementById("bound1.long").value;
-        var lat2 = document.getElementById("bound2.lat").value;
-        var long2 = document.getElementById("bound2.long").value;
-        console.log(lat1 + " " + long1 + " ");
-        //L.rect(lat1, long1, lat2, long2).addTo;
-        var bounds = [[lat1, long1], [lat2, long2]];
-        if (rectangle)
-            window.map.removeLayer(window.rectangle);
-        rectangle = L.rectangle(bounds).addTo(map);
-        transformLatAndLong();
-    }
-
-    function iteratePointsFromQuery(){
-        for(i = 0; i < queryResult.results.bindings.length; i++){
+    function iteratePointsFromQuery() {
+        for (i = 0; i < queryResult.results.bindings.length; i++) {
             var obj = queryResult.results.bindings[i];
-            console.log(obj);
             var lat = obj.lat.value;
             var lon = obj.lon.value;
             drawPointsFromQuery([lat, lon])
         }
     }
 
-    function drawPointsFromQuery(tupleOfPoint){
+    function drawPointsFromQuery(tupleOfPoint) {
         L.marker(tupleOfPoint).addTo(map);
+    }
+
+    function deletePointsFromMap() {
+        listOfCords = [];
+        if (polygonOnMap)
+            window.map.removeLayer(window.polygonOnMap);
     }
 
     document.addEventListener('keydown', (event) => {
