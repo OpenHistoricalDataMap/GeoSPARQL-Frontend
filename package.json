@@ -1,8 +1,0 @@
-{
-  "name": "LeafletLearn",
-  "version": "1.0.0",
-  "dependencies": {},
-  "devDependencies": {
-    "local-reverse-geocoder": "^0.7.0"
-  }
-}
