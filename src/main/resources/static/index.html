@@ -37,18 +37,21 @@
 <body>
 <div class="body">
     <div class="center">
-        <p>Benutzung:
-            Auf Karte klicken, um neuen Punkt auszuwählen.
-            Anschließend c drücken, um obere linke Ecke des Rechtecks für Suche zu definieren.
-            Danach nochmal klicken, neuen Punkt aussuchen.
-            Anschließend v drücken, um untere rechte Ecke des Rechtecks für Suche zu definieren.
-            Optional:
-            d drücken, um das Rechteck zu zeichnen (Visuell auf Karte anzuzeigen)</p>
         <p>
-            Zuletzt die anderen Felder manuell wie gewünscht ausfüllen. Das Datum (2x) wird durch interaktive Auswahl
-            per JS ausgewählt. Dann gibt man noch den gewünschten OHDM Subklassennamen ein (Siehe Map Features von OSM)
-            und
-            drückt auf "Submit for query". Nun sollte man eine generierte GEOSparql-Anfrage erhalten.
+            Usage:
+            Drag on the map to move around. Click on the map to mark a point for your polygon. This polygon
+            will be used as the search are for the query. You need at least 3 points, then the polygon will be
+            marked on the map.
+        </p>
+        <p>
+            Finally you select some "valid from-until" dates with the little javascript datepicker tool, and
+            also select a Class/Subclass from the dropdown menu below. After that, you can press on the submit for
+            query button, and your query will be generated below.
+        </p>
+        <p>
+            We also support visualizing data. An example of this can be found below. Click the "Submit query and
+            vusialize Data" button to send out the shown example query and get a valid result back, which will then
+            be drawn on the map. (Hint: Look near GB/London)
         </p>
         <button onclick="deletePointsFromMap()">Delete Polygon</button>
     </div>
@@ -59,123 +62,69 @@
                 <td rowspan="12">
                     <p>Valid-From: <input type="text" id="validfrom" name="valid from" value="" required></p>
                     <p>Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required></p>
+                    <p>Class/Subclass</p>
                     <select id="classid" required>
-                        <option value="1">Aerialway</option>
-                        <option value="2">Aeroway</option>
-                        <option value="3">Amenity</option>
-                        <option value="4">Barrier</option>
-                        <option value="5">Boundary</option>
-                        <option value="6">Building</option>
-                        <option value="7">Craft</option>
-                        <option value="8">Emergency</option>
-                    </select>
-                    <p>QUERY:
+                        <optgroup label="Aerialway">
+                            <option value="1-1">Undefined</option>
+                            <option value="1-2">Cable Car</option>
+                            <option value="1-3">Gondola</option>
+                            <option value="1-4">Chair lift</option>
+                            <option value="1-5">Mixed Lift</option>
+                            <option value="1-6">Drag Lift</option>
+                            <option value="1-7">T-Bar</option>
+                            <option value="1-8">J-Bar</option>
+                            <option value="1-9">Platter</option>
+                            <option value="1-10">Rope Tow</option>
+                            <option value="1-11">Magic Carpet</option>
+                            <option value="1-12">Zip Line</option>
+                            <option value="1-13">Pylon</option>
+                            <option value="1-14">Station</option>
+                            <option value="1-15">Canopy</option>
+                            <option value="1-16">Goods</option>
+                        </optgroup>
+                        <optgroup label=""></optgroup>
 
+                    </select>
+                    <p>Submit query:
                     <div class="center">
                         <button type="button" id="submitbtn" onclick="parseQuery()">Submit for query</button>
                     </div>
                     </p>
                 </td>
-                <td>
-                    <p><b>URI ENCODED QUERY</b></p>
-                    <div id="query"></div>
-                </td>
-                <td>
-                    <p><b>URI DECODED QUERY</b></p>
-                    <div id="queryDecoded"></div>
-                </td>
+
                 <td>
                     <p><b>Default Query for visualizing some data:</b></p>
                     <div id="defaultQuery">
                     </div>
-                    <button onclick="iteratePointsFromQuery()">Submit query and visualize Data</button>
+                    <button onclick="sendQueryAndVisualizeData()">Submit query and visualize Data</button>
                 </td>
             </tr>
         </table>
-
+        <table style="border: black">
+            <td>
+                <p><b>URI ENCODED QUERY</b></p>
+                <div id="query"></div>
+            </td>
+            <td>
+                <p><b>URI DECODED QUERY</b></p>
+                <div id="queryDecoded"></div>
+            </td>
+        </table>
     </div>
 </div>
 
 
 <script>
-    var lat = 47.03; // default value
-    var long = 10.2; // default value
+    var lat = 47.03;
+    var long = 10.2;
     var listOfCords = [];
     var polygonOnMap;
-    var osmFeatureClasses = {};
-    const UNDEFINED = "undefined";
-    var subClasses = [];
-    const examplequery = "PREFIX gn: <http://www.geonames.org/ontology#>\n" +
-        "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> \n" +
-        "PREFIX spatial: <http://jena.apache.org/spatial#> \n" +
-        "PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>\n" +
-        " \n" +
-        "\n" +
-        "SELECT ?link ?name ?lat ?lon\n" +
-        "WHERE  {  \n" +
-        "   ?link spatial:nearby(51.139725 -0.895386 50 'km') .  \n" +
-        "   ?link gn:name ?name .  \n" +
-        "   ?link gn:featureCode gn:S.AIRP .\n" +
-        "   ?link geo:lat ?lat .\n" +
-        "   ?link geo:long ?lon\n" +
-        "}";
+    var queryResult;
     const queryURL = "http://www.lotico.com:3030/lotico/sparql?query=PREFIX+gn%3A+%3Chttp%3A%2F%2Fwww.geonames.org%2Fontology%23%3E%0D%0APREFIX+xsd%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E+%0D%0APREFIX+spatial%3A+%3Chttp%3A%2F%2Fjena.apache.org%2Fspatial%23%3E+%0D%0APREFIX+geo%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2003%2F01%2Fgeo%2Fwgs84_pos%23%3E%0D%0A+%0D%0A%0D%0ASELECT+%3Flink+%3Fname+%3Flat+%3Flon%0D%0AWHERE++%7B++%0D%0A+++%3Flink+spatial%3Anearby%2851.139725+-0.895386+50+%27km%27%29+.++%0D%0A+++%3Flink+gn%3Aname+%3Fname+.++%0D%0A+++%3Flink+gn%3AfeatureCode+gn%3AS.AIRP+.%0D%0A+++%3Flink+geo%3Alat+%3Flat+.%0D%0A+++%3Flink+geo%3Along+%3Flon%0D%0A%7D&output=json";
     document.getElementById("defaultQuery").innerText = "\n" + queryURL + "\n\n This query should find nearby airpots of London. Example query from www.geosparql.org";
-    var queryResult;
-    //get result from query
-    const Http = new XMLHttpRequest();
-    Http.open("GET", queryURL);
-    Http.send();
-
-    Http.onreadystatechange = function () {
-        if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
-            queryResult = JSON.parse(Http.responseText);
-        }
-    };
-    // Aerialway
-    // fill with all known subclasses
-    subClasses.push(UNDEFINED);
-    subClasses.push("cable_car");// lines
-    subClasses.push("gondola");// lines
-    subClasses.push("chair_lift");// lines
-    subClasses.push("mixed_lift");// lines
-    subClasses.push("drag_lift");// lines
-    subClasses.push("t-bar");// lines
-    subClasses.push("j-bar");// lines
-    subClasses.push("platter");// lines
-    subClasses.push("rope_tow");// lines
-    subClasses.push("magic_carpet"); // lines
-    subClasses.push("zip_line");
-
-    subClasses.push("pylon"); // point
-    subClasses.push("station"); // point and polygone
-
-    subClasses.push("canopy"); // lines
-    subClasses.push("goods"); // lines
-
-    osmFeatureClasses['aerialway'] = {subClasses};
-    // Aeroway
-    subClasses = [];
-
-    // fill with all known subclasses
-    subClasses.push(UNDEFINED);
-    subClasses.push("apron");
-    subClasses.push("gate");
-    subClasses.push("hangar");
-    subClasses.push("helipad");
-    subClasses.push("navigationaid");
-    subClasses.push("runway");
-    subClasses.push("taxilane");
-    subClasses.push("taxiway");
-    subClasses.push("apron");
-    subClasses.push("terminal");
-    subClasses.push("windsock");
-
-    osmFeatureClasses['aeroway'] = {subClasses};
 
     // initialize the map
     var map = L.map('map').setView([0, 0], 3);
-
 
     // load a tile layer
     L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
@@ -199,18 +148,19 @@
         }
     });
 
+    //creates the actual query for ohdm
     function parseQuery() {
         if (listOfCords.length < 3) {
-            alert("Polygon must have at least 3 points!");
+            alert("The Polygon must have at least 3 points! Click on the map!");
             return;
         }
         const validfrom = document.getElementById('validfrom').value;
         const validuntil = document.getElementById('validuntil').value;
-        if(!validfrom || !validuntil){
+        if (!validfrom || !validuntil) {
             alert("Please enter the validfrom and validuntil dates!");
             return;
         }
-        const classid = document.getElementById('classid').value;
+        const ids = document.getElementById('classid').value;
         var stringOfCords = "";
         for (i = 0; i < listOfCords.length; i++) {
             const element = listOfCords[i];
@@ -218,21 +168,26 @@
         }
         stringOfCords += listOfCords[0][0] + " " + listOfCords[0][1];
 
+        const idArray = ids.split('-');
+        const classID = parseInt(idArray[0]);
+        const subclassID = parseInt(idArray[1]);
+
         var query = "PREFIX ohdm: <http://www.ohdm.net/ohdm/schema/1.0>\n" +
             "PREFIX strdf: <http://strdf.di.uoa.gr/ontology#>\n" +
             "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
-            "select ?o ?geom ?c ?since ?until\n" +
+            "select ?o ?geom ?classid ?subclassid ?since ?until\n" +
             "where \n" +
             "{\n" +
             "?s ohdm:name ?o ;\n" +
             "strdf:hasGeometry ?geom ;\n" +
             "ohdm:validsince ?since ;\n" +
             "ohdm:validuntil ?until ;\n" +
-            "ohdm:classid ?c ;\n" +
-            "filter(?c = \"" + classid + "\"^^xsd:string)\n" +
+            "ohdm:classid ?classid ;\n" +
+            "ohdm:subclassid ?subclassid ;\n" +
+            "filter(?classid = \"" + classID + "\"^^xsd:integer)\n" +
+            "filter(?subclassid = \"" + subclassID + "\"^^xsd:integer)\n" +
             "filter(strdf:within(?geom,\n" +
-            "\"POLYGON((" + stringOfCords + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT)\n"
-            + ")\n"
+            "\"POLYGON((" + stringOfCords + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT))\n"
             + "filter(?since > \"" + validfrom + "\"^^xsd:date)\n"
             + "filter(?until < \"" + validuntil + "\"^^xsd:date)\n"
             + "}\n";
@@ -240,6 +195,20 @@
         document.getElementById("queryDecoded").innerText = query;
         query = encodeURIComponent(query);
         document.getElementById("query").innerText = query;
+    }
+
+    function sendQueryAndVisualizeData() {
+        //get result from query
+        const Http = new XMLHttpRequest();
+        Http.open("GET", queryURL);
+        Http.send();
+
+        Http.onreadystatechange = function () {
+            if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                queryResult = JSON.parse(Http.responseText);
+                iteratePointsFromQuery();
+            }
+        };
     }
 
     function iteratePointsFromQuery() {
@@ -282,6 +251,7 @@
 </script>
 
 <script>
+    //initialize datepicker
     const input = document.getElementById('validfrom');
     const datepicker = new TheDatepicker.Datepicker(input);
     datepicker.render();
@@ -290,26 +260,6 @@
     datepicker2.render();
     datepicker.options.setInputFormat("Y-m-d");
     datepicker2.options.setInputFormat("Y-m-d");
-
-    var select = document.getElementById("select");
-
-    var mapFeatures = ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential",
-        "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link"
-    ]
-
-    for (var i = 0; i < mapFeatures.length; i++) {
-        var option = document.createElement("OPTION");
-        txt = document.createTextNode(mapFeatures[i]);
-        option.appendChild(txt);
-        option.setAttribute("value", mapFeatures[i]);
-        select.insertBefore(option, select.lastChild);
-    }
-
-    function getSelectedCountry() {
-        var selectedCountry = document.getElementById("select");
-    }
-
-    getSelectedCountry();
 </script>
 
 
