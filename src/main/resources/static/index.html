@@ -8,7 +8,10 @@
     <script type="text/javascript" src="https://unpkg.com/leaflet@1.1.0/dist/leaflet-src.js"></script>
     <!--link rel="stylesheet" type="text/css" href="css/leaflet.css"-->
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css">
-
+    <script
+            src="https://code.jquery.com/jquery-3.4.1.js"
+            integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+            crossorigin="anonymous"></script>
     <script type="text/javascript" src="the-datepicker.js"></script>
 
     <style>
@@ -45,8 +48,8 @@
         </p>
         <p>
             Finally you select some "valid from-until" dates with the little javascript datepicker tool, and
-            also select a Class/Subclass from the dropdown menu below. After that, you can press on the submit for
-            query button, and your query will be generated below.
+            also select one or multiple(by holding CTRL or SHIFT) Class/Subclass from the dropdown menu below.
+            After that, you can press on the submit for query button, and your query will be generated below.
         </p>
         <p>
             We also support visualizing data. An example of this can be found below. Click the "Submit query and
@@ -63,7 +66,7 @@
                     <p>Valid-From: <input type="text" id="validfrom" name="valid from" value="" required></p>
                     <p>Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required></p>
                     <p>Class/Subclass</p>
-                    <select id="classid" required>
+                    <select id="classid" required multiple>
                         <optgroup label="Aerialway">
                             <option value="1-1">Undefined</option>
                             <option value="1-2">Cable Car</option>
@@ -161,18 +164,39 @@
             return;
         }
         const ids = document.getElementById('classid').value;
-        var stringOfCords = "";
+        let values = $('#classid').val();
+        let idArr = new Set();
+        let subidArr = new Set();
+        //Add ids into sets
+        for (i = 0; i < values.length; i++) {
+            const valArr = values[i].split("-");
+            idArr.add(valArr[0]);
+            subidArr.add(valArr[1]);
+        }
+        idArr = Array.from(idArr);
+        subidArr = Array.from(subidArr);
+        let classIDString = "(";
+        let subclassIDString = "(";
+        for (let i = 0; i < idArr.length; i++) {
+            classIDString += idArr[i] + ", ";
+        }
+        classIDString = classIDString.substr(0, classIDString.length - 2);
+        classIDString += ")";
+        for (let i = 0; i < subidArr.length; i++) {
+            console.log(subidArr[i]);
+            subclassIDString += subidArr[i] + ", ";
+        }
+        subclassIDString = subclassIDString.substr(0, subclassIDString.length - 2);
+        subclassIDString += ")";
+        console.log(subclassIDString + " " + classIDString);
+        let stringOfCords = "";
         for (i = 0; i < listOfCords.length; i++) {
             const element = listOfCords[i];
             stringOfCords += element[0] + " " + element[1] + ", ";
         }
         stringOfCords += listOfCords[0][0] + " " + listOfCords[0][1];
 
-        const idArray = ids.split('-');
-        const classID = parseInt(idArray[0]);
-        const subclassID = parseInt(idArray[1]);
-
-        var query = "PREFIX ohdm: <http://www.ohdm.net/ohdm/schema/1.0>\n" +
+        let query = "PREFIX ohdm: <http://www.ohdm.net/ohdm/schema/1.0>\n" +
             "PREFIX strdf: <http://strdf.di.uoa.gr/ontology#>\n" +
             "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
             "select ?o ?geom ?classid ?subclassid ?since ?until\n" +
@@ -184,8 +208,8 @@
             "ohdm:validuntil ?until ;\n" +
             "ohdm:classid ?classid ;\n" +
             "ohdm:subclassid ?subclassid ;\n" +
-            "filter(?classid = \"" + classID + "\"^^xsd:integer)\n" +
-            "filter(?subclassid = \"" + subclassID + "\"^^xsd:integer)\n" +
+            "filter(?classid IN " + classIDString + ")\n" +
+            "filter(?subclassid IN " + subclassIDString + ")\n" +
             "filter(strdf:within(?geom,\n" +
             "\"POLYGON((" + stringOfCords + "));http://www.opengis.net/def/crs/EPSG/0/3857\"^^strdf:WKT))\n"
             + "filter(?since > \"" + validfrom + "\"^^xsd:date)\n"
@@ -229,25 +253,6 @@
         if (polygonOnMap)
             window.map.removeLayer(window.polygonOnMap);
     }
-
-    document.addEventListener('keydown', (event) => {
-        const keyName = event.key;
-
-        if (keyName === 'c') {
-            iteratePointsFromQuery();
-        }
-    }, false);
-
-    callBound1 = function () {
-        document.getElementById("bound1.lat").value = lat;
-        document.getElementById("bound1.long").value = long;
-    };
-
-
-    callBound2 = function () {
-        document.getElementById("bound2.lat").value = lat;
-        document.getElementById("bound2.long").value = long;
-    };
 </script>
 
 <script>
