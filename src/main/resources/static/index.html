@@ -18,15 +18,16 @@
         #map {
             margin-top: 20px;
             margin-bottom: 20px;
-            width: 50%;
             height: 50%;
             align-self: center;
         }
 
         .center {
             margin: auto;
-            width: 50%;
+            width: 90%;
             padding: 10px;
+            align-content: center;
+            align-items: center;
         }
 
         .body {
@@ -34,6 +35,17 @@
             width: 98%;
             height: 95%;
             padding: 0px;
+        }
+
+        td, th {
+            word-break: break-all;
+            padding: 15px;
+            border: 1px solid #dddddd;
+        }
+
+        table {
+            border: 1px solid #dddddd;
+            border-collapse: collapse;
         }
     </style>
 </head>
@@ -62,7 +74,7 @@
     <div class="center">
         <table>
             <tr>
-                <td rowspan="12">
+                <td>
                     <p>Valid-From: <input type="text" id="validfrom" name="valid from" value="" required></p>
                     <p>Valid-Until: <input type="text" id="validuntil" name="valid until" value="" required></p>
                     <p>Class/Subclass</p>
@@ -85,6 +97,10 @@
                             <option value="1-15">Canopy</option>
                             <option value="1-16">Goods</option>
                         </optgroup>
+                        <optgroup label="Aeroway">
+                            <option value="2-1">Undefined</option>
+                            <option value="2-2">Aerodrome</option>
+                        </optgroup>
                         <optgroup label=""></optgroup>
 
                     </select>
@@ -103,15 +119,23 @@
                 </td>
             </tr>
         </table>
-        <table style="border: black">
-            <td>
-                <p><b>URI ENCODED QUERY</b></p>
-                <div id="query"></div>
-            </td>
-            <td>
-                <p><b>URI DECODED QUERY</b></p>
-                <div id="queryDecoded"></div>
-            </td>
+        <table>
+            <tr>
+                <th>
+                    URI ENCODED QUERY
+                </th>
+                <th>
+                    URI DECODED QUERY
+                </th>
+            </tr>
+            <tr>
+                <td style="width: 50%;">
+                    <p id="query"></p>
+                </td>
+                <td style="width: 50%;">
+                    <p id="queryDecoded"></p>
+                </td>
+            </tr>
         </table>
     </div>
 </div>
